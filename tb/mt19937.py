@@ -85,13 +85,43 @@ class mt19937(object):
 
         return y
 
+    def int32b(self):
+        if self.mti == 625:
+            self.seed(5489)
+
+        k = self.mti
+
+        if k == 624:
+            k = 0
+            self.mti = 0
+
+        if k == 623:
+            y = (self.mt[623] & 0x80000000) | (self.mt[0] & 0x7fffffff)
+            self.mt[623] = self.mt[396] ^ (y >> 1) ^ (0x9908b0df if y & 1 else 0)
+        else:
+            y = (self.mt[k] & 0x80000000) | (self.mt[k+1] & 0x7fffffff)
+            if k < 624 - 397:
+                self.mt[k] = self.mt[k+397] ^ (y >> 1) ^ (0x9908b0df if y & 1 else 0)
+            else:
+                self.mt[k] = self.mt[k+397-624] ^ (y >> 1) ^ (0x9908b0df if y & 1 else 0)
+
+        y = self.mt[self.mti]
+        self.mti += 1
+
+        y ^= (y >> 11)
+        y ^= (y << 7) & 0x9d2c5680
+        y ^= (y << 15) & 0xefc60000
+        y ^= (y >> 18)
+
+        return y
+
 if __name__ == '__main__':
     mt = mt19937()
     mt.init_by_array([0x123, 0x234, 0x345, 0x456])
     print("1000 outputs of int32")
     s=''
     for i in range(1000):
-        s += "%10lu " % mt.int32()
+        s += "%10lu " % mt.int32b()
         if i % 5 == 4:
             print(s)
             s = ''

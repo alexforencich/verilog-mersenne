@@ -85,13 +85,43 @@ class mt19937_64(object):
 
         return y
 
+    def int64b(self):
+        if self.mti == 313:
+            self.seed(5489)
+
+        k = self.mti
+
+        if k == 312:
+            k = 0
+            self.mti = 0
+
+        if k == 311:
+            y = (self.mt[311] & 0xFFFFFFFF80000000) | (self.mt[0] & 0x7fffffff)
+            self.mt[311] = self.mt[155] ^ (y >> 1) ^ (0xB5026F5AA96619E9 if y & 1 else 0)
+        else:
+            y = (self.mt[k] & 0xFFFFFFFF80000000) | (self.mt[k+1] & 0x7fffffff)
+            if k < 312 - 156:
+                self.mt[k] = self.mt[k+156] ^ (y >> 1) ^ (0xB5026F5AA96619E9 if y & 1 else 0)
+            else:
+                self.mt[k] = self.mt[k+156-624] ^ (y >> 1) ^ (0xB5026F5AA96619E9 if y & 1 else 0)
+
+        y = self.mt[self.mti]
+        self.mti += 1
+
+        y ^= (y >> 29) & 0x5555555555555555
+        y ^= (y << 17) & 0x71D67FFFEDA60000
+        y ^= (y << 37) & 0xFFF7EEE000000000
+        y ^= (y >> 43)
+
+        return y
+
 if __name__ == '__main__':
     mt = mt19937_64()
     mt.init_by_array([0x12345, 0x23456, 0x34567, 0x45678])
     print("1000 outputs of int64")
     s=''
     for i in range(1000):
-        s += "%10lu " % mt.int64()
+        s += "%10lu " % mt.int64b()
         if i % 5 == 4:
             print(s)
             s = ''
