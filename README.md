@@ -1,4 +1,4 @@
-# Verilog Mersenne twister Readme
+# Verilog Mersenne Twister Readme
 
 For more information and updates: http://alexforencich.com/wiki/en/verilog/mersenne/start
 
@@ -36,8 +36,8 @@ read attempt on the AXI bus if a seed operation has not yet taken place.
 
 ### Source Files
 
-    rtl/axis_mt19937.v     : 32 bit implementation, mt19937ar
-    rtl/axis_mt19937_64.v  : 64 bit implementation, mt19937-64
+    rtl/axis_mt19937.v     : 32 bit MT implementation, mt19937ar
+    rtl/axis_mt19937_64.v  : 64 bit MT implementation, mt19937-64
 
 ### AXI Stream Interface Example
 
