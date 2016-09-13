@@ -24,9 +24,15 @@ THE SOFTWARE.
 
 // Language: Verilog 2001
 
-`timescale 1 ns / 1 ps
+`timescale 1ns / 1ps
 
+/*
+ * Testbench axis_mt19937
+ */
 module test_axis_mt19937;
+
+// Parameters
+
 
 // Inputs
 reg clk = 0;
@@ -44,15 +50,18 @@ wire busy;
 
 initial begin
     // myhdl integration
-    $from_myhdl(clk,
-                rst,
-                current_test,
-                seed_val,
-                seed_start,
-                output_axis_tready);
-    $to_myhdl(output_axis_tdata,
-              output_axis_tvalid,
-              busy);
+    $from_myhdl(
+        clk,
+        rst,
+        current_test,
+        seed_val,
+        seed_start,
+        output_axis_tready);
+    $to_myhdl(
+        output_axis_tdata,
+        output_axis_tvalid,
+        busy
+    );
 
     // dump file
     $dumpfile("test_axis_mt19937.lxt");

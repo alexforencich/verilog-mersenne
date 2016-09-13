@@ -26,53 +26,20 @@ THE SOFTWARE.
 from myhdl import *
 import os
 
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
-
 import axis_ep
 import mt19937
 
 module = 'axis_mt19937'
+testbench = 'test_%s' % module
 
 srcs = []
 
 srcs.append("../rtl/%s.v" % module)
-srcs.append("test_%s.v" % module)
+srcs.append("%s.v" % testbench)
 
 src = ' '.join(srcs)
 
-build_cmd = "iverilog -o test_%s.vvp %s" % (module, src)
-
-def dut_axis_mt19937(clk,
-                     rst,
-                     current_test,
-
-                     output_axis_tdata,
-                     output_axis_tvalid,
-                     output_axis_tready,
-
-                     seed_val,
-                     seed_start,
-
-                     busy):
-
-    if os.system(build_cmd):
-        raise Exception("Error running build command")
-    return Cosimulation("vvp -m myhdl test_%s.vvp -lxt2" % module,
-                clk=clk,
-                rst=rst,
-                current_test=current_test,
-
-                output_axis_tdata=output_axis_tdata,
-                output_axis_tvalid=output_axis_tvalid,
-                output_axis_tready=output_axis_tready,
-
-                seed_val=seed_val,
-                seed_start=seed_start,
-
-                busy=busy)
+build_cmd = "iverilog -o %s.vvp %s" % (testbench, src)
 
 def bench():
 
@@ -91,31 +58,39 @@ def bench():
     busy = Signal(bool(0))
 
     # sources and sinks
-    sink_queue = Queue()
     sink_pause = Signal(bool(0))
 
-    sink = axis_ep.AXIStreamSink(clk,
-                                 rst,
-                                 tdata=output_axis_tdata,
-                                 tvalid=output_axis_tvalid,
-                                 tready=output_axis_tready,
-                                 fifo=sink_queue,
-                                 pause=sink_pause,
-                                 name='sink')
+    sink = axis_ep.AXIStreamSink()
+
+    sink_logic = sink.create_logic(
+        clk,
+        rst,
+        tdata=output_axis_tdata,
+        tvalid=output_axis_tvalid,
+        tready=output_axis_tready,
+        pause=sink_pause,
+        name='sink'
+    )
 
     # DUT
-    dut = dut_axis_mt19937(clk,
-                           rst,
-                           current_test,
+    if os.system(build_cmd):
+        raise Exception("Error running build command")
 
-                           output_axis_tdata,
-                           output_axis_tvalid,
-                           output_axis_tready,
+    dut = Cosimulation(
+        "vvp -m myhdl %s.vvp -lxt2" % testbench,
+        clk=clk,
+        rst=rst,
+        current_test=current_test,
 
-                           seed_val,
-                           seed_start,
+        output_axis_tdata=output_axis_tdata,
+        output_axis_tvalid=output_axis_tvalid,
+        output_axis_tready=output_axis_tready,
 
-                           busy)
+        seed_val=seed_val,
+        seed_start=seed_start,
+
+        busy=busy
+    )
 
     @always(delay(4))
     def clkgen():
@@ -142,10 +117,10 @@ def bench():
         current_test.next = 1
 
         for i in range(1000):
-            while sink_queue.empty():
+            while sink.empty():
                 yield clk.posedge
 
-            frame = sink_queue.get()
+            frame = sink.recv()
             assert frame.data[0] == mt.int32()
 
         print("test 2: pause sink")
@@ -160,10 +135,10 @@ def bench():
             yield clk.posedge
 
         for i in range(1000):
-            while sink_queue.empty():
+            while sink.empty():
                 yield clk.posedge
 
-            frame = sink_queue.get()
+            frame = sink.recv()
             assert frame.data[0] == mt.int32()
 
         yield delay(100)
@@ -180,19 +155,19 @@ def bench():
         seed_start.next = 0
         yield clk.posedge
 
-        while not sink_queue.empty():
-            sink_queue.get()
+        while not sink.empty():
+            sink.recv()
 
         for i in range(1000):
-            while sink_queue.empty():
+            while sink.empty():
                 yield clk.posedge
 
-            frame = sink_queue.get()
+            frame = sink.recv()
             assert frame.data[0] == mt.int32()
 
         raise StopSimulation
 
-    return dut, sink, clkgen, check
+    return dut, sink_logic, clkgen, check
 
 def test_bench():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
